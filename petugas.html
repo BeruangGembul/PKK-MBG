@@ -1,0 +1,136 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Panel Petugas MBG</title>
+    <link rel="stylesheet" href="pstyle.css">
+</head>
+<body>
+
+<div class="container">
+
+    <div class="next-queue-badge">
+        📢 Antrean Berikutnya: <span id="kelasBerikutnya">Memuat...</span>
+    </div>
+
+    <h2>Panel Petugas MBG</h2>
+    
+    <button class="btn-panggil" onclick="panggilBerikutnya()">📲 Panggil Antrean Berikutnya</button>
+
+    <div class="card-panggilan">
+        <span style="color: #64748b; font-size: 14px; font-weight: 600;">SEDANG DIPANGGIL:</span>
+        <div class="kelas-text" id="kelasDipanggil">-</div>
+        <button class="btn-selesai" onclick="tandaiSelesai()">✓ Tandai Sudah Diambil</button>
+    </div>
+</div>
+
+<script type="module">
+    import { initializeApp } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-app.js";
+    import { getDatabase, ref, onValue, update } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-database.js";
+
+    const firebaseConfig = {
+        apiKey: "AIzaSyBl-m0uLNkWyFFQAd9ho7yYTcsX6z9KIMk",
+        authDomain: "mbg-pkk.firebaseapp.com",
+        databaseURL: "https://mbg-pkk-default-rtdb.firebaseio.com",
+        projectId: "mbg-pkk",
+        storageBucket: "mbg-pkk.firebasestorage.app",
+        messagingSenderId: "752541102453",
+        appId: "1:752541102453:web:38047f08514042a137233c",
+        measurementId: "G-JFCTHZZDRQ"
+    };
+
+    const app = initializeApp(firebaseConfig);
+    const db = getDatabase(app);
+
+    // Variabel untuk menyimpan data antrean saat ini
+    let daftarAntreanGlobal = [];
+    let currentDipanggilKey = null;
+
+    // 1. PANTAU SELURUH ANTREAN DARI FIREBASE SECARA REAL-TIME
+    const antreanRef = ref(db, 'antrean');
+    
+    onValue(antreanRef, (snapshot) => {
+        const data = snapshot.val();
+        const badgeElemen = document.getElementById("kelasBerikutnya");
+        const kelasDipanggilElemen = document.getElementById("kelasDipanggil");
+
+        if (!badgeElemen) return;
+
+        if (data) {
+            // Ubah object firebase menjadi array & urutkan berdasarkan waktu paling awal (FIFO)
+            daftarAntreanGlobal = Object.keys(data).map(key => ({
+                key: key,
+                ...data[key]
+            })).sort((a, b) => a.waktu - b.waktu);
+
+            // A. Cari antrean pertama yang statusnya masih "menunggu" untuk Badge
+            const antreanMenunggu = daftarAntreanGlobal.find(item => item.status === 'menunggu');
+
+            if (antreanMenunggu) {
+                badgeElemen.innerText = antreanMenunggu.kelas;
+            } else {
+                badgeElemen.innerText = "Belum Ada / Antrean Kosong";
+            }
+
+            // B. Cari antrean yang statusnya "dipanggil" untuk ditampilkan di layar petugas
+            const antreanDipanggil = daftarAntreanGlobal.find(item => item.status === 'dipanggil');
+
+            if (antreanDipanggil) {
+                kelasDipanggilElemen.innerText = antreanDipanggil.kelas;
+                currentDipanggilKey = antreanDipanggil.key; // simpan key-nya
+            } else {
+                kelasDipanggilElemen.innerText = "-";
+                currentDipanggilKey = null;
+            }
+
+        } else {
+            daftarAntreanGlobal = [];
+            badgeElemen.innerText = "Belum Ada / Antrean Kosong";
+            kelasDipanggilElemen.innerText = "-";
+            currentDipanggilKey = null;
+        }
+    });
+
+    // 2. FUNGSI UNTUK MEMANGGIL ANTREAN BERIKUTNYA
+    window.panggilBerikutnya = function() {
+        // Cari antrean terdepan yang statusnya masih 'menunggu'
+        const antreanMenunggu = daftarAntreanGlobal.find(item => item.status === 'menunggu');
+
+        if (!antreanMenunggu) {
+            alert("Tidak ada antrean yang sedang menunggu!");
+            return;
+        }
+
+        // Ubah status kelas tersebut di Firebase menjadi 'dipanggil'
+        const targetRef = ref(db, 'antrean/' + antreanMenunggu.key);
+        update(targetRef, {
+            status: 'dipanggil'
+        }).then(() => {
+            console.log("Berhasil memanggil: " + antreanMenunggu.kelas);
+        }).catch((err) => {
+            alert("Gagal memanggil antrean: " + err.message);
+        });
+    };
+
+    // 3. FUNGSI UNTUK MENANDAI ANTREAN SUDAH SELESAI/DIAMBIL
+    window.tandaiSelesai = function() {
+        if (!currentDipanggilKey) {
+            alert("Belum ada antrean yang sedang dipanggil!");
+            return;
+        }
+
+        // Ubah status kelas yang sedang dipanggil di Firebase menjadi 'selesai'
+        const targetRef = ref(db, 'antrean/' + currentDipanggilKey);
+        update(targetRef, {
+            status: 'selesai'
+        }).then(() => {
+            console.log("Antrean selesai.");
+        }).catch((err) => {
+            alert("Gagal memperbarui status: " + err.message);
+        });
+    };
+</script>
+
+</body>
+</html>
