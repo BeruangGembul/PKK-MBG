@@ -54,7 +54,7 @@
             <option value="XI RPL 3">XI RPL 3</option>
             <option value="XI RPL 4">XI RPL 4</option>
             <!--KELAS XII-->
-            <option value="XII-- ELIND 1">XII ELIND 1</option>
+            <option value="XII ELIND 1">XII ELIND 1</option>
             <option value="XII ELIND 2">XII ELIND 2</option>
             <option value="XII OI 1">XII OI 1</option>
             <option value="XII OI 2">XII OI 2</option>
@@ -82,7 +82,7 @@
         <p id="instruksiText" style="margin: 0; font-size: 14px;">Harap tunggu di kelas sampai giliran dipanggil.</p>
 
         <button id="btnReset" onclick="resetAntrean()" style="margin-top: 15px; background: #64748b; display: none;">
-            🔄 Ambill Antrian Baru
+            🔄 Ambill Antrian Baru 
         </button>
     </div>
 </div>
@@ -194,7 +194,7 @@
                 instruksi.innerText = "Makanan sudah diambil. Terima kasih!";
                 
                 // Tampilkan tombol ambil antrean baru saat selesai
-                buatTombolReset();
+                btnReset.style.display = "block";
             }
         });
     }
