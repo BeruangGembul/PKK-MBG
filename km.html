@@ -105,21 +105,21 @@
     const app = initializeApp(firebaseConfig);
     const db = getDatabase(app);
 
-    // 1. Cek saat halaman dimuat (jika KM pernah ambil antrean sebelumnya)
+    // 1. Cek status antrean saat halaman dimuat
     window.addEventListener('DOMContentLoaded', () => {
         const savedKey = localStorage.getItem('myAntreanKey');
         const savedKelas = localStorage.getItem('myKelas');
 
         if (savedKey && savedKelas) {
             tampilkanStatusBox(savedKelas);
-            pantauStatus(savedKey); // Langsung pantau key yang tersimpan
+            pantauStatus(savedKey);
         }
     });
 
-    // 2. Fungsi Ambil Antrean
+    // 2. FUNGSI AMBIL ANTREAN (Dipasang ke window agar onclick HTML bisa panggil)
     window.ambilAntrean = function() {
         const kelasSelect = document.getElementById("kelas");
-        const kelas = kelasSelect.value;
+        const kelas = kelasSelect ? kelasSelect.value : "";
 
         if (!kelas) {
             alert("Pilih kelas terlebih dahulu!");
@@ -128,103 +128,98 @@
 
         const antreanRef = ref(db, 'antrean');
 
-        // Simpan ke Firebase
+        // Simpan data ke Firebase
         const newAntreanRef = push(antreanRef, {
             kelas: kelas,
             status: "menunggu",
             waktu: Date.now()
         });
 
-        // Dapatkan Unique Key dari Firebase
         const newKey = newAntreanRef.key;
 
-        localStorage.setItem('myAntreanKey',newKey);
-        localStorage.setItem('myKelas',kelas);
-
-        tampilkanStatusBox(kelas);
-        pantauStatus(newKey);
-
-        window.resetAntrean = function() {
-            localStorage.removeItem('myAntreanKey');
-            localStorage.removeItem('myKelas');
-
-            document.getElementById("formSection").style.display = "block";
-            document.getElementById("statusBox").style.display = "none";
-
-            const btnReset = document.getElementById("btnReset");
-            if (btnReset) btnReset.style.display = "none";
-        }
-
-        function tampilkanStatusBox(kelas) {
-            document.getElementById("formSection").style.display = "none";
-            document.getElementById("statusBox").style.display = "block";
-            document.getElementById("namaKelasLabel").innerText = kelas;
-        }
-
-        // Simpan ke LocalStorage agar tidak hilang saat di-refresh
-        localStorage.getItem; // Hapus jika ada typo
+        // Simpan key & kelas ke LocalStorage
         localStorage.setItem('myAntreanKey', newKey);
         localStorage.setItem('myKelas', kelas);
 
-        // Tampilkan kotak status & mulai pantau perubahan secara real-time
         tampilkanStatusBox(kelas);
         pantauStatus(newKey);
     };
 
-    // Helper UI
+    // 3. FUNGSI RESET ANTREAN (Dipasang ke window agar onclick HTML bisa panggil)
+    window.resetAntrean = function() {
+        localStorage.removeItem('myAntreanKey');
+        localStorage.removeItem('myKelas');
+        
+        // Reload halaman agar kembali bersih ke form awal
+        window.location.reload();
+    };
+
+    // Helper Tampilan
     function tampilkanStatusBox(kelas) {
         document.getElementById("formSection").style.display = "none";
         document.getElementById("statusBox").style.display = "block";
         document.getElementById("namaKelasLabel").innerText = kelas;
     }
 
-    
-    
-
-    // 3. Fungsi Pantau Status Real-time berdasarkan ID Key
+    // 4. Pantau Status Antrean secara Real-Time
     function pantauStatus(key) {
-        // Tembak langsung ke ID antrean milik kelas ini
         const spesifikRef = ref(db, 'antrean/' + key);
 
         onValue(spesifikRef, (snapshot) => {
             const data = snapshot.val();
+            
+            // Jika data di-reset/dihapus oleh petugas dari database
             if (!data) {
                 window.resetAntrean();
                 return;
-
-            };
+            }
 
             const box = document.getElementById("statusBox");
             const text = document.getElementById("statusAntreanText");
             const instruksi = document.getElementById("instruksiText");
-            let btnReset = document.getElementById("btnReset");
 
-            if (!btnReset) {
-                btnReset = document.createElement("button");
-                btnReset.id = "btnReset";
-                btnReset.innerText = "🔄 Ambil Antrean Baru";
-                btnReset.style.cssText = "margin-top: 15px; background-color: #475569; color: white; border: none; padding: 10px 16px; border-radius: 8px; cursor: pointer; width: 100%; font-weight: 600;";
-                btnReset.onclick = window.resetAntrean;
-            box.appendChild(btnReset);
-            }
-
-            // Update UI otomatis saat status di Firebase diubah oleh Petugas
             if (data.status === 'menunggu') {
                 box.className = "status-box status-menunggu";
                 text.innerText = "MENUNGGU...";
                 instruksi.innerText = "Harap tunggu di kelas sampai giliran dipanggil.";
+                hapusTombolReset();
             } else if (data.status === 'dipanggil') {
                 box.className = "status-box status-dipanggil";
                 text.innerText = "SILAKAN AMBIL!";
                 instruksi.innerText = "🚨 Giliran kelasmu! Segera menuju tempat pembagian MBG.";
+                hapusTombolReset();
             } else if (data.status === 'selesai') {
                 box.className = "status-box status-selesai";
                 text.innerText = "SELESAI";
                 instruksi.innerText = "Makanan sudah diambil. Terima kasih!";
-
-                btnReset.style.display = "block";
+                
+                // Tampilkan tombol ambil antrean baru saat selesai
+                buatTombolReset();
             }
         });
+    }
+
+    // Fungsi membuat tombol "Ambil Antrean Baru"
+    function buatTombolReset() {
+        if (!document.getElementById("btnReset")) {
+            const box = document.getElementById("statusBox");
+            const btn = document.createElement("button");
+            btn.id = "btnReset";
+            btn.innerText = "🔄 Ambil Antrean Baru / Berikutnya";
+            btn.style.cssText = "margin-top: 15px; background-color: #2563eb; color: white; border: none; padding: 12px 16px; border-radius: 8px; cursor: pointer; width: 100%; font-weight: bold; font-size: 14px;";
+            
+            // Pasang fungsi reset langsung ke Event Listener
+            btn.addEventListener('click', () => {
+                window.resetAntrean();
+            });
+
+            box.appendChild(btn);
+        }
+    }
+
+    function hapusTombolReset() {
+        const btn = document.getElementById("btnReset");
+        if (btn) btn.remove();
     }
 </script>
 
