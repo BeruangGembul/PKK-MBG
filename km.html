@@ -10,7 +10,12 @@
 <body>
 
 <div class="card">
-    <h2>Antrean MBG Sekolah</h2>
+    <div class="title-container">
+        <h2 class="title-text">Antrean MBG Sekolah</h2>
+        <span class="btn-antrean-mini" onclick="window.bukaModalAntrean()" title="Lihat Urutan Antrean">
+            📋 List Antrian
+        </span>
+    </div>
     
     <div id="formSection">
         <label for="kelas" style="color: #64748b; font-size: 14px;">Pilih Kelas Anda:</label>
@@ -81,9 +86,35 @@
         <div class="status-text" id="statusAntreanText">MENUNGGU...</div>
         <p id="instruksiText" style="margin: 0; font-size: 14px;">Harap tunggu di kelas sampai giliran dipanggil.</p>
 
+        
+
         <button id="btnReset" onclick="resetAntrean()" style="margin-top: 15px; background: #64748b; display: none;">
             🔄 Ambill Antrian Baru 
         </button>
+    </div>
+</div>
+
+<!-- SIDEBAR / PANEL SAMPING ANTREAN -->
+<div id="modalAntrean" class="sidebar-overlay hidden" onclick="window.tutupModalAntrean()">
+    <div class="sidebar-card">
+        <div class="sidebar-header">
+            <h3>Urutan Antrean MBG</h3>
+            <button type="button" class="btn-close" onclick="window.tutupModalAntrean(); event.stopPropagation();">&times;</button>
+        </div>
+        <div class="sidebar-body" onclick="event.stopPropagation()">
+            <table class="antrean-table">
+                <thead>
+                    <tr>
+                        <th>No</th>
+                        <th>Kelas</th>
+                        <th>Status</th>
+                    </tr>
+                </thead>
+                <tbody id="tabelAntreanBody">
+                    <tr><td colspan="3" style="text-align:center;">Memuat data...</td></tr>
+                </tbody>
+            </table>
+        </div>
     </div>
 </div>
 
@@ -105,15 +136,36 @@
     const app = initializeApp(firebaseConfig);
     const db = getDatabase(app);
 
+    let daftarAntreanGlobal = [];
+    let myKelasGlobal = "";
+
+    window.bukaModalAntrean = function() {
+        const modal = document.getElementById("modalAntrean");
+        if (modal) {
+            renderTabelAntrean();
+            modal.classList.remove("hidden");
+        } else {
+            console.error("Elemen #modalAntrean tidak ditemukan di HTML!");
+        }
+    };
+
+    window.tutupModalAntrean = function() {
+        const modal = document.getElementById("modalAntrean");
+        if (modal) modal.classList.add("hidden");
+    };
+
     // 1. Cek status antrean saat halaman dimuat
     window.addEventListener('DOMContentLoaded', () => {
         const savedKey = localStorage.getItem('myAntreanKey');
         const savedKelas = localStorage.getItem('myKelas');
 
         if (savedKey && savedKelas) {
+            myKelasGlobal = savedKelas;
             tampilkanStatusBox(savedKelas);
             pantauStatus(savedKey);
         }
+
+        pantauSeluruhAntrean();
     });
 
     // 2. FUNGSI AMBIL ANTREAN (Dipasang ke window agar onclick HTML bisa panggil)
@@ -126,6 +178,7 @@
             return;
         }
 
+        myKelasGlobal = kelas;
         const antreanRef = ref(db, 'antrean');
 
         // Simpan data ke Firebase
@@ -163,41 +216,41 @@
 
     // 4. Pantau Status Antrean secara Real-Time
     function pantauStatus(key) {
-        const spesifikRef = ref(db, 'antrean/' + key);
+    const spesifikRef = ref(db, 'antrean/' + key);
 
-        onValue(spesifikRef, (snapshot) => {
-            const data = snapshot.val();
+    onValue(spesifikRef, (snapshot) => {
+        const data = snapshot.val();
+        
+        if (!data) {
+            window.resetAntrean();
+            return;
+        }
+
+        const box = document.getElementById("statusBox");
+        const text = document.getElementById("statusAntreanText");
+        const instruksi = document.getElementById("instruksiText");
+        const btnReset = document.getElementById("btnReset");
+
+        if (data.status === 'menunggu') {
+            box.className = "status-box status-menunggu";
+            text.innerText = "MENUNGGU...";
+            instruksi.innerText = "Harap tunggu di kelas sampai giliran dipanggil.";
+            if (btnReset) btnReset.style.display = "none";
+        } else if (data.status === 'dipanggil') {
+            box.className = "status-box status-dipanggil";
+            text.innerText = "SILAKAN AMBIL!";
+            instruksi.innerText = "🚨 Giliran kelasmu! Segera menuju tempat pembagian MBG.";
+            if (btnReset) btnReset.style.display = "none";
+        } else if (data.status === 'selesai') {
+            box.className = "status-box status-selesai";
+            text.innerText = "SELESAI";
+            instruksi.innerText = "Makanan sudah diambil. Terima kasih!";
             
-            // Jika data di-reset/dihapus oleh petugas dari database
-            if (!data) {
-                window.resetAntrean();
-                return;
-            }
-
-            const box = document.getElementById("statusBox");
-            const text = document.getElementById("statusAntreanText");
-            const instruksi = document.getElementById("instruksiText");
-
-            if (data.status === 'menunggu') {
-                box.className = "status-box status-menunggu";
-                text.innerText = "MENUNGGU...";
-                instruksi.innerText = "Harap tunggu di kelas sampai giliran dipanggil.";
-                hapusTombolReset();
-            } else if (data.status === 'dipanggil') {
-                box.className = "status-box status-dipanggil";
-                text.innerText = "SILAKAN AMBIL!";
-                instruksi.innerText = "🚨 Giliran kelasmu! Segera menuju tempat pembagian MBG.";
-                hapusTombolReset();
-            } else if (data.status === 'selesai') {
-                box.className = "status-box status-selesai";
-                text.innerText = "SELESAI";
-                instruksi.innerText = "Makanan sudah diambil. Terima kasih!";
-                
-                // Tampilkan tombol ambil antrean baru saat selesai
-                btnReset.style.display = "block";
-            }
-        });
-    }
+            // Tampilkan tombol reset bawaan HTML
+            if (btnReset) btnReset.style.display = "block";
+        }
+    });
+}
 
     // Fungsi membuat tombol "Ambil Antrean Baru"
     function buatTombolReset() {
@@ -220,6 +273,63 @@
     function hapusTombolReset() {
         const btn = document.getElementById("btnReset");
         if (btn) btn.remove();
+    }
+
+    function pantauSeluruhAntrean() {
+        const antreanRef = ref(db, 'antrean');
+        onValue(antreanRef, (snapshot) => {
+            const data = snapshot.val();
+            if (data) {
+                daftarAntreanGlobal = Object.keys(data).map(key => ({
+                    key: key,
+                    ...data[key]
+                })).sort((a, b) => a.waktu - b.waktu);
+
+                const modal = document.getElementById("modalAntrean");
+                if (modal && !modal.classList.contains("hidden")) {
+                    renderTabelAntrean();
+                }
+            } else {
+                daftarAntreanGlobal = [];
+                renderTabelAntrean();
+            }
+        });
+    }
+
+    
+
+    function renderTabelAntrean(){
+        const tbody = document.getElementById("tabelAntreanBody");
+        if (!tbody) return;
+            
+        tbody.innerHTML = "";
+
+        // Perbaikan logika: jika array kosong
+        if (daftarAntreanGlobal.length === 0) {
+            tbody.innerHTML = '<tr><td colspan="3" style="text-align:center; color:#64748b;">Belum ada antrean hari ini</td></tr>';
+            return;
+        }
+
+        // Perbaikan variabel index, isMyClass, dan "dipanggil"
+        daftarAntreanGlobal.forEach((item, index) => {
+            const tr = document.createElement("tr");
+
+            const isMyClass = (item.kelas === myKelasGlobal);
+            if (isMyClass) tr.classList.add("my-class-row");
+            
+            let badgeClass = "badge-menunggu";
+            if (item.status === "selesai") badgeClass = "badge-selesai";
+            if (item.status === "dipanggil") badgeClass = "badge-dipanggil";
+
+            tr.innerHTML = `
+                <td>#${index + 1}</td>
+                <td><strong>${item.kelas} ${isMyClass ? '⭐ (Kelas Anda)' : ''}</strong></td>
+                <td><span class="badge ${badgeClass}">${item.status || 'menunggu'}</span></td>
+            `;
+
+            tbody.appendChild(tr);
+        });
+        
     }
 </script>
 
