@@ -130,6 +130,26 @@
             alert("Gagal memperbarui status: " + err.message);
         });
     };
+
+    window.kembalikanWadah = function(){
+        const savedKey = localStorage.getItem('myAntreanKey');
+        if (!savedKey) return;
+
+        // jam
+        const sekarang = new Date();
+        const jamFormat = sekarang.toLocaleDateString('id-ID',{hour: '2-digit', minute:'2-digit'}) + "WIB";
+
+        const spesifikRef = ref(db, 'antrean/' + savedKey);
+        
+        update(spesifikRef, {
+            statusPengembalian: "dikembalikan",
+            waktuKembali: jamFormat
+        }).then(() => {
+            alert("Wadah MBG berhasil dicatat telah dikembalikan pada jam " + jamFormat);
+        }).catch((error) => {
+            alert("Gagal mencatat pengembalian: " + error.message);
+        });
+    }
 </script>
 
 </body>

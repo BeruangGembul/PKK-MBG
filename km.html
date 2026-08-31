@@ -88,9 +88,9 @@
 
         
 
-        <button id="btnReset" onclick="resetAntrean()" style="margin-top: 15px; background: #64748b; display: none;">
-            🔄 Ambill Antrian Baru 
-        </button>
+        <button id="btnReset" onclick="window.resetAntrean()" style="margin-top: 15px; background: #64748b; display: none; border: none; padding: 12px 16px; border-radius: 8px; color: white; cursor: pointer; width: 100%; font-weight: bold;">
+    🔄 Ambil Antrian Baru 
+</button>
     </div>
 </div>
 
@@ -120,7 +120,28 @@
 
 <script type="module">
     import { initializeApp } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-app.js";
-    import { getDatabase, ref, push, onValue } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-database.js";
+    import { getDatabase, ref, push, onValue,update } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-database.js";
+
+    window.kembalikanWadah = function () {
+        const savedKey = localStorage.getItem('myAntreanKey');
+        if (!savedKey) return;
+
+    // Ambil jam & menit saat ini (format HH:MM WIB)
+        const sekarang = new Date();
+        const jamFormat = sekarang.toLocaleTimeString('id-ID', { hour: '2-digit', minute: '2-digit' }) + " WIB";
+
+        const spesifikRef = ref(db, 'antrean/' + savedKey);
+
+    // Update status pengembalian di Firebase
+        update(spesifikRef, {
+        statusPengembalian: "dikembalikan",
+        waktuKembali: jamFormat
+        }).then(() => {
+        alert("Wadah MBG berhasil dicatat telah dikembalikan pada jam " + jamFormat);
+        }).catch((error) => {
+        alert("Gagal mencatat pengembalian: " + error.message);
+        });
+    }
 
     const firebaseConfig = {
         apiKey: "AIzaSyBl-m0uLNkWyFFQAd9ho7yYTcsX6z9KIMk",
@@ -185,7 +206,9 @@
         const newAntreanRef = push(antreanRef, {
             kelas: kelas,
             status: "menunggu",
-            waktu: Date.now()
+            waktu: Date.now(),
+            statusPengembalian:"belum",
+            waktuKembali:"-"
         });
 
         const newKey = newAntreanRef.key;
@@ -232,26 +255,58 @@
         const btnReset = document.getElementById("btnReset");
 
         if (data.status === 'menunggu') {
-            box.className = "status-box status-menunggu";
-            text.innerText = "MENUNGGU...";
-            instruksi.innerText = "Harap tunggu di kelas sampai giliran dipanggil.";
-            if (btnReset) btnReset.style.display = "none";
-        } else if (data.status === 'dipanggil') {
-            box.className = "status-box status-dipanggil";
-            text.innerText = "SILAKAN AMBIL!";
-            instruksi.innerText = "🚨 Giliran kelasmu! Segera menuju tempat pembagian MBG.";
-            if (btnReset) btnReset.style.display = "none";
-        } else if (data.status === 'selesai') {
-            box.className = "status-box status-selesai";
-            text.innerText = "SELESAI";
-            instruksi.innerText = "Makanan sudah diambil. Terima kasih!";
-            
-            // Tampilkan tombol reset bawaan HTML
-            if (btnReset) btnReset.style.display = "block";
-        }
+    box.className = "status-box status-menunggu";
+    text.innerText = "MENUNGGU...";
+    instruksi.innerText = "Harap tunggu di kelas sampai giliran dipanggil.";
+    if (btnReset) btnReset.style.display = "none";
+    hapusTombolKembali(); // ➕ TAMBAHAN
+} else if (data.status === 'dipanggil') {
+    box.className = "status-box status-dipanggil";
+    text.innerText = "SILAKAN AMBIL!";
+    instruksi.innerText = "🚨 Giliran kelasmu! Segera menuju tempat pembagian MBG.";
+    if (btnReset) btnReset.style.display = "none";
+    hapusTombolKembali(); // ➕ TAMBAHAN
+} else if (data.status === 'selesai') {
+    box.className = "status-box status-selesai";
+    
+    if (data.statusPengembalian === 'dikembalikan') {
+        text.innerText = "WADAH DIKEMBALIKAN";
+        instruksi.innerText = `Terima kasih! Wadah MBG telah dikembalikan pada jam ${data.waktuKembali}.`;
+        
+        if (btnReset) btnReset.style.display = "block";
+        hapusTombolKembali();
+    } else {
+        text.innerText = "MAKANAN SELESAI";
+        instruksi.innerText = "Silakan nikmati makanan. Jangan lupa kembalikan tempat MBG jika sudah selesai!";
+        
+        buatTombolKembali();
+        if (btnReset) btnReset.style.display = "none";
+    }
+}
     });
 }
 
+
+    function buatTombolKembali() {
+    if (!document.getElementById("btnKembaliWadah")) {
+        const box = document.getElementById("statusBox");
+        const btn = document.createElement("button");
+        btn.id = "btnKembaliWadah";
+        btn.innerText = "🍱 Kembalikan Tempat MBG";
+        btn.style.cssText = "margin-top: 15px; background-color: #10b981; color: white; border: none; padding: 12px 16px; border-radius: 8px; cursor: pointer; width: 100%; font-weight: bold; font-size: 14px;";
+        
+        btn.addEventListener('click', () => {
+            window.kembalikanWadah();
+        });
+
+        box.appendChild(btn);
+    }
+    }
+
+    function hapusTombolKembali() {
+        const btn = document.getElementById("btnKembaliWadah");
+        if (btn) btn.remove();
+    }
     // Fungsi membuat tombol "Ambil Antrean Baru"
     function buatTombolReset() {
         if (!document.getElementById("btnReset")) {
@@ -322,10 +377,13 @@
             if (item.status === "dipanggil") badgeClass = "badge-dipanggil";
 
             tr.innerHTML = `
-                <td>#${index + 1}</td>
-                <td><strong>${item.kelas} ${isMyClass ? '⭐ (Kelas Anda)' : ''}</strong></td>
-                <td><span class="badge ${badgeClass}">${item.status || 'menunggu'}</span></td>
-            `;
+    <td>#${index + 1}</td>
+    <td><strong>${item.kelas} ${isMyClass ? '⭐ (Kelas Anda)' : ''}</strong></td>
+    <td>
+        <span class="badge ${badgeClass}">${item.status || 'menunggu'}</span>
+        ${item.statusPengembalian === 'dikembalikan' ? `<br><small style="color:#10b981; font-size: 11px;">✅ Wadah Kembali (${item.waktuKembali})</small>` : ''}
+    </td>
+`;
 
             tbody.appendChild(tr);
         });
