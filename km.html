@@ -124,13 +124,14 @@
 
     window.kembalikanWadah = function () {
         const savedKey = localStorage.getItem('myAntreanKey');
+        const savedDate = localStorage.getItem('myAntreanDate') || getTanggalHariIni();
         if (!savedKey) return;
 
     // Ambil jam & menit saat ini (format HH:MM WIB)
         const sekarang = new Date();
         const jamFormat = sekarang.toLocaleTimeString('id-ID', { hour: '2-digit', minute: '2-digit' }) + " WIB";
 
-        const spesifikRef = ref(db, 'antrean/' + savedKey);
+        const spesifikRef = ref(db, 'antrean/${savedDate}/${savedKey}');
 
     // Update status pengembalian di Firebase
         update(spesifikRef, {
@@ -179,15 +180,34 @@
     window.addEventListener('DOMContentLoaded', () => {
         const savedKey = localStorage.getItem('myAntreanKey');
         const savedKelas = localStorage.getItem('myKelas');
+        const savedDate = localStorage.getItem('myAntreanDate');
+        const hariIni = getTanggalHariIni();
+
+        if (savedDate && savedDate !== hariIni) {
+            localStorage.removeItem('myAntreanKey');
+            localStorage.removeItem('myAntreanDate');
+            localStorage.removeItem('mykelas');
+            window.location.reload();
+            return;
+        }
+
 
         if (savedKey && savedKelas) {
             myKelasGlobal = savedKelas;
             tampilkanStatusBox(savedKelas);
-            pantauStatus(savedKey);
+            pantauStatus(savedKey,hariIni);
         }
 
         pantauSeluruhAntrean();
     });
+
+    function getTanggalHariIni(){
+        const d = new Date();
+        const year = d.getFullYear();
+        const month = String(d.getMonth() + 1).padStart(2, '0');
+        const day = String(d.getDate()) .padStart(2,'0');
+        return `${year}-${month}-${day}`;
+}
 
     // 2. FUNGSI AMBIL ANTREAN (Dipasang ke window agar onclick HTML bisa panggil)
     window.ambilAntrean = function() {
@@ -200,7 +220,8 @@
         }
 
         myKelasGlobal = kelas;
-        const antreanRef = ref(db, 'antrean');
+        const tanggal = getTanggalHariIni();
+        const antreanRef = ref(db, 'antrean/${tanggal}');
 
         // Simpan data ke Firebase
         const newAntreanRef = push(antreanRef, {
@@ -215,10 +236,11 @@
 
         // Simpan key & kelas ke LocalStorage
         localStorage.setItem('myAntreanKey', newKey);
+        localStorage.setItem('myAntreanDate',tanggal);
         localStorage.setItem('myKelas', kelas);
 
         tampilkanStatusBox(kelas);
-        pantauStatus(newKey);
+        pantauStatus(newKey,tanggal);
     };
 
     // 3. FUNGSI RESET ANTREAN (Dipasang ke window agar onclick HTML bisa panggil)
@@ -238,8 +260,9 @@
     }
 
     // 4. Pantau Status Antrean secara Real-Time
-    function pantauStatus(key) {
-    const spesifikRef = ref(db, 'antrean/' + key);
+    function pantauStatus(key,tanggal) {
+        const tgl = tanggal || getTanggalHariIni();
+        const spesifikRef = ref(db, 'antrean/${tgl}/${key}');
 
     onValue(spesifikRef, (snapshot) => {
         const data = snapshot.val();
@@ -255,31 +278,31 @@
         const btnReset = document.getElementById("btnReset");
 
         if (data.status === 'menunggu') {
-    box.className = "status-box status-menunggu";
-    text.innerText = "MENUNGGU...";
-    instruksi.innerText = "Harap tunggu di kelas sampai giliran dipanggil.";
-    if (btnReset) btnReset.style.display = "none";
-    hapusTombolKembali(); // ➕ TAMBAHAN
-} else if (data.status === 'dipanggil') {
-    box.className = "status-box status-dipanggil";
-    text.innerText = "SILAKAN AMBIL!";
-    instruksi.innerText = "🚨 Giliran kelasmu! Segera menuju tempat pembagian MBG.";
-    if (btnReset) btnReset.style.display = "none";
-    hapusTombolKembali(); // ➕ TAMBAHAN
-} else if (data.status === 'selesai') {
-    box.className = "status-box status-selesai";
+            box.className = "status-box status-menunggu";
+            text.innerText = "MENUNGGU...";
+            instruksi.innerText = "Harap tunggu di kelas sampai giliran dipanggil.";
+            if (btnReset) btnReset.style.display = "none";
+            hapusTombolKembali(); // ➕ TAMBAHAN
+        } else if (data.status === 'dipanggil') {
+            box.className = "status-box status-dipanggil";
+            text.innerText = "SILAKAN AMBIL!";
+            instruksi.innerText = "🚨 Giliran kelasmu! Segera menuju tempat pembagian MBG.";
+        if (btnReset) btnReset.style.display = "none";
+            hapusTombolKembali(); // ➕ TAMBAHAN
+        } else if (data.status === 'selesai') {
+            box.className = "status-box status-selesai";
     
-    if (data.statusPengembalian === 'dikembalikan') {
-        text.innerText = "WADAH DIKEMBALIKAN";
-        instruksi.innerText = `Terima kasih! Wadah MBG telah dikembalikan pada jam ${data.waktuKembali}.`;
+            if (data.statusPengembalian === 'dikembalikan') {
+                text.innerText = "WADAH DIKEMBALIKAN";
+                instruksi.innerText = `Terima kasih! Wadah MBG telah dikembalikan pada jam ${data.waktuKembali}.`;
         
-        if (btnReset) btnReset.style.display = "block";
-        hapusTombolKembali();
-    } else {
-        text.innerText = "MAKANAN SELESAI";
-        instruksi.innerText = "Silakan nikmati makanan. Jangan lupa kembalikan tempat MBG jika sudah selesai!";
+            if (btnReset) btnReset.style.display = "block";
+            hapusTombolKembali();
+        } else {
+            text.innerText = "MAKANAN SELESAI";
+            instruksi.innerText = "Silakan nikmati makanan. Jangan lupa kembalikan tempat MBG jika sudah selesai!";
         
-        buatTombolKembali();
+            buatTombolKembali();
         if (btnReset) btnReset.style.display = "none";
     }
 }
@@ -331,7 +354,9 @@
     }
 
     function pantauSeluruhAntrean() {
-        const antreanRef = ref(db, 'antrean');
+        const hariIni = getTanggalHariIni();
+        const antreanRef = ref(db, 'antrean/${hariIni}');
+
         onValue(antreanRef, (snapshot) => {
             const data = snapshot.val();
             if (data) {
@@ -389,6 +414,9 @@
         });
         
     }
+
+    
+        
 </script>
 
 </body>
