@@ -121,6 +121,7 @@
 <script type="module">
     import { initializeApp } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-app.js";
     import { getDatabase, ref, push, onValue,update } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-database.js";
+    import { getAuth, signInAnonymously } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-auth.js";
 
     window.kembalikanWadah = function () {
         const savedKey = localStorage.getItem('myAntreanKey');
@@ -155,8 +156,13 @@
         measurementId: "G-JFCTHZZDRQ"
     };
 
+    
+
     const app = initializeApp(firebaseConfig);
     const db = getDatabase(app);
+
+    const auth = getAuth(app);
+    signInAnonymously(auth).catch((err) => console.error("Gagal Auth Anonim KM:", err));
 
     let daftarAntreanGlobal = [];
     let myKelasGlobal = "";
@@ -208,7 +214,19 @@
         const day = String(d.getDate()) .padStart(2,'0');
         return `${year}-${month}-${day}`;
 }
+        const hariIni = getTanggalHariIni();
+        const savedKey = localStorage.getItem('myAntreanKey');
+        if (savedKey) {
+    const spesifikRef = ref(db, "antrean/" + hariIni + "/" + savedKey);
 
+    onValue(spesifikRef, (snapshot) => {
+        const data = snapshot.val();
+        if (data) {
+            // Update tampilan status (MENUNGGU / DIPANGGIL / SELESAI)
+        }
+    });
+}
+        
     // 2. FUNGSI AMBIL ANTREAN (Dipasang ke window agar onclick HTML bisa panggil)
     window.ambilAntrean = function() {
         const kelasSelect = document.getElementById("kelas");
@@ -221,7 +239,7 @@
 
         myKelasGlobal = kelas;
         const tanggal = getTanggalHariIni();
-        const antreanRef = ref(db, 'antrean/${tanggal}');
+        const antreanRef = ref(db, "antrean/" + tanggal);
 
         // Simpan data ke Firebase
         const newAntreanRef = push(antreanRef, {
@@ -262,7 +280,7 @@
     // 4. Pantau Status Antrean secara Real-Time
     function pantauStatus(key,tanggal) {
         const tgl = tanggal || getTanggalHariIni();
-        const spesifikRef = ref(db, 'antrean/${tgl}/${key}');
+        const spesifikRef = ref(db, "antrean/" + tgl + "/" + key);
 
     onValue(spesifikRef, (snapshot) => {
         const data = snapshot.val();

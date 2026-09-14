@@ -47,11 +47,22 @@
     let daftarAntreanGlobal = [];
     let currentDipanggilKey = null;
 
+    function getTanggalHariIni(){
+        const d = new Date();
+        const year = d.getFullYear();
+        const month = String(d.getMonth() + 1).padStart(2, '0');
+        const day = String(d.getDate()) .padStart(2,'0');
+        return `${year}-${month}-${day}`;
+    }
+
+    const hariIni = getTanggalHariIni();
+
     // 1. PANTAU SELURUH ANTREAN DARI FIREBASE SECARA REAL-TIME
-    const antreanRef = ref(db, 'antrean');
+    const antreanRef = ref(db, "antrean/" + hariIni);
     
     onValue(antreanRef, (snapshot) => {
         const data = snapshot.val();
+        console.log("Data dari Firebase:", data);
         const badgeElemen = document.getElementById("kelasBerikutnya");
         const kelasDipanggilElemen = document.getElementById("kelasDipanggil");
 
@@ -103,7 +114,7 @@
         }
 
         // Ubah status kelas tersebut di Firebase menjadi 'dipanggil'
-        const targetRef = ref(db, 'antrean/' + antreanMenunggu.key);
+        const targetRef = ref(db, 'antrean/' + hariIni + '/' + antreanMenunggu.key);
         update(targetRef, {
             status: 'dipanggil'
         }).then(() => {
@@ -121,7 +132,7 @@
         }
 
         // Ubah status kelas yang sedang dipanggil di Firebase menjadi 'selesai'
-        const targetRef = ref(db, 'antrean/' + currentDipanggilKey);
+        const targetRef = ref(db, 'antrean/' + hariIni + '/' + currentDipanggilKey);
         update(targetRef, {
             status: 'selesai'
         }).then(() => {
@@ -150,6 +161,10 @@
             alert("Gagal mencatat pengembalian: " + error.message);
         });
     }
+
+    
+
+        
 </script>
 
 </body>
