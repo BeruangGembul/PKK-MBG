@@ -132,7 +132,7 @@
         const sekarang = new Date();
         const jamFormat = sekarang.toLocaleTimeString('id-ID', { hour: '2-digit', minute: '2-digit' }) + " WIB";
 
-        const spesifikRef = ref(db, 'antrean/${savedDate}/${savedKey}');
+        const spesifikRef = ref(db, `antrean/${savedDate}/${savedKey}`);
 
     // Update status pengembalian di Firebase
         update(spesifikRef, {
@@ -373,7 +373,7 @@
 
     function pantauSeluruhAntrean() {
         const hariIni = getTanggalHariIni();
-        const antreanRef = ref(db, 'antrean/${hariIni}');
+        const antreanRef = ref(db, `antrean/${hariIni}`);
 
         onValue(antreanRef, (snapshot) => {
             const data = snapshot.val();
