@@ -11,7 +11,7 @@
     margin: 0;
     font-size: 1.25rem;
     font-weight: 700;
-    color: #1e293b;
+    color: #d4d8df;
 }
 
 .btn-antrean-mini{
@@ -40,7 +40,7 @@ html, body {
             /* PILIH SALAH SATU WARNA BACKGROUND DI BAWAH INI: */
             
             /* Opsi A: Warna Biru Gradasi (Sama seperti Login) */
-            background: linear-gradient(135deg, #1d4ed8, #3b82f6) !important;
+            background: linear-gradient(135deg, #1A4B84 0%, #1773B9 100%) !important;
             
             /* Opsi B: Warna Abu-Abu Terang (Jika mau hapus garis miring // di bawah) */
             /* background-color: #f1f5f9 !important; */
@@ -56,17 +56,20 @@ html, body {
         top: 50%;
         left: 50%;
         transform: translate(-50%, -50%);
-    
+        color: white;
         width: 90%;
         max-width: 400px;
-        background: #ffffff;
-        padding: 25px;
-        border-radius: 16px;
-        box-shadow: 0 10px 25px rgba(0, 0, 0, 0.15);
+        background: rgba(255, 255, 255, 0.15);
+        backdrop-filter: blur(12px);
+        -webkit-backdrop-filter: blur(12px);
+        border:1px solid rgba(255, 255, 255, 0.3);
+        padding: 24px;
+        border-radius: 12px;
+        box-shadow: 0 8px 32px 0 rgba(0, 0, 0, 0.15);
     }
 
 select,input{
-    border: 1px solid #cbd5e1;
+    border: 1px solid #bec3c9;
     outline: none;
     transition: all 0.2s;
 }
@@ -95,6 +98,7 @@ button {
     background-color: #2563eb; 
     color: white; 
     border: none; 
+    border-radius: 8px;
     cursor: pointer; 
     transition: 0.2s; 
 }

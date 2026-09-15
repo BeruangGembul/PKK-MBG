@@ -3,25 +3,29 @@
     box-sizing: border-box; 
 }
 body { 
-    background: linear-gradient(135deg, #1d4ed8, #3b82f6) !important; 
+    background: linear-gradient(135deg, #1A4B84 0%, #1773B9 100%) !important; 
     font-family: 'Segoe UI', Roboto, sans-serif; 
     background: #f8fafc; 
     padding: 20px; 
     text-align: center; 
     margin: 0; 
+    min-height:100vh;
 }
 .container { 
     position: fixed;
     top: 50%;
     left: 50%;
     transform: translate(-50%, -50%);
-    
+    background: rgba(255, 255, 255, 0.15);
+    backdrop-filter: blur(12px);
+    -webkit-backdrop-filter: blur(12px);
     width: 90%;
     max-width: 450px;
-    background: #ffffff;
-    padding: 25px;
-    border-radius: 16px;
-    box-shadow: 0 10px 25px rgba(0, 0, 0, 0.15);
+    border: 1px solid rgba(255, 255, 255, 0.3);
+    padding: 24px;
+    color: white;
+    border-radius: 12px;
+    box-shadow: 0 8px 32px 0 rgba(0, 0, 0, 0.15);
 }
 
 .next-queue-badge{
@@ -43,16 +47,16 @@ body {
         }
 
 h2 { 
-    color: #0f172a; 
+    color: #dde2ee; 
     margin-bottom: 20px; 
 }
 
 .btn-panggil { 
-    background: #2563eb; 
+    background: rgba(255, 255, 255, 0.174);
     color: white; 
     padding: 16px;
     font-size: 18px; 
-    border: none; 
+    border: 2px dashed rgba(255, 255, 255, 0.5);
     border-radius: 10px; 
     width: 100%; 
     font-weight: bold; 
