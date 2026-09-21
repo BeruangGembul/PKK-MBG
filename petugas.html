@@ -148,9 +148,9 @@
 
         // jam
         const sekarang = new Date();
-        const jamFormat = sekarang.toLocaleDateString('id-ID',{hour: '2-digit', minute:'2-digit'}) + "WIB";
+        const jamFormat = sekarang.toLocaleTimeString('id-ID',{hour: '2-digit', minute:'2-digit'}) + "WIB";
 
-        const spesifikRef = ref(db, 'antrean/' + savedKey);
+        const spesifikRef = ref(db, 'antrean/' + hariIni + '/' + savedKey);
         
         update(spesifikRef, {
             statusPengembalian: "dikembalikan",

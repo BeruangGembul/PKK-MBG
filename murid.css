@@ -120,7 +120,7 @@ button:hover {
 100% { transform: scale(1); }
         }
 
-sidebar-overlay {
+.sidebar-overlay {
     position: fixed;
     top: 0;
     left: 0;
@@ -133,7 +133,7 @@ sidebar-overlay {
 }
 
 .sidebar-overlay.hidden {
-    display: none;
+    
     opacity: 0;
     pointer-events: none;
 }
@@ -152,6 +152,12 @@ sidebar-overlay {
     flex-direction: column;
     z-index: 1000;
     overflow: hidden;
+
+    
+}
+
+.sidebar-card.tampil-animasi {
+    transform: translateX(0);
 }
 
 /* Header Panel Samping */

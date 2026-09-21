@@ -171,7 +171,13 @@
         const modal = document.getElementById("modalAntrean");
         if (modal) {
             renderTabelAntrean();
+
             modal.classList.remove("hidden");
+
+            setTimeout(() => {
+
+            modal.classList.add("tampil-animasi");
+        }, 10);
         } else {
             console.error("Elemen #modalAntrean tidak ditemukan di HTML!");
         }
@@ -179,7 +185,14 @@
 
     window.tutupModalAntrean = function() {
         const modal = document.getElementById("modalAntrean");
-        if (modal) modal.classList.add("hidden");
+
+        if (modal) {
+        modal.classList.remove("tampil-animasi");
+
+        setTimeout(() => {
+            modal.classList.add("hidden");
+        }, 300); 
+    }// 300ms sama dengan durasi 0.3s di CSS
     };
 
     // 1. Cek status antrean saat halaman dimuat
@@ -219,13 +232,7 @@
         if (savedKey) {
     const spesifikRef = ref(db, "antrean/" + hariIni + "/" + savedKey);
 
-    onValue(spesifikRef, (snapshot) => {
-        const data = snapshot.val();
-        if (data) {
-            // Update tampilan status (MENUNGGU / DIPANGGIL / SELESAI)
         }
-    });
-}
         
     // 2. FUNGSI AMBIL ANTREAN (Dipasang ke window agar onclick HTML bisa panggil)
     window.ambilAntrean = function() {
@@ -282,50 +289,72 @@
         const tgl = tanggal || getTanggalHariIni();
         const spesifikRef = ref(db, "antrean/" + tgl + "/" + key);
 
-    onValue(spesifikRef, (snapshot) => {
-        const data = snapshot.val();
-        
-        if (!data) {
-            window.resetAntrean();
-            return;
-        }
+        onValue(spesifikRef, (snapshot) => {
+            const data = snapshot.val();
+            
+            if (!data) {
+                window.resetAntrean();
+                return;
+            }
 
-        const box = document.getElementById("statusBox");
-        const text = document.getElementById("statusAntreanText");
-        const instruksi = document.getElementById("instruksiText");
-        const btnReset = document.getElementById("btnReset");
+            const box = document.getElementById("statusBox");
+            const text = document.getElementById("statusAntreanText");
+            const instruksi = document.getElementById("instruksiText");
+            const btnReset = document.getElementById("btnReset");
 
-        if (data.status === 'menunggu') {
-            box.className = "status-box status-menunggu";
-            text.innerText = "MENUNGGU...";
-            instruksi.innerText = "Harap tunggu di kelas sampai giliran dipanggil.";
-            if (btnReset) btnReset.style.display = "none";
-            hapusTombolKembali(); // ➕ TAMBAHAN
-        } else if (data.status === 'dipanggil') {
-            box.className = "status-box status-dipanggil";
-            text.innerText = "SILAKAN AMBIL!";
-            instruksi.innerText = "🚨 Giliran kelasmu! Segera menuju tempat pembagian MBG.";
-        if (btnReset) btnReset.style.display = "none";
-            hapusTombolKembali(); // ➕ TAMBAHAN
-        } else if (data.status === 'selesai') {
-            box.className = "status-box status-selesai";
-    
-            if (data.statusPengembalian === 'dikembalikan') {
-                text.innerText = "WADAH DIKEMBALIKAN";
-                instruksi.innerText = `Terima kasih! Wadah MBG telah dikembalikan pada jam ${data.waktuKembali}.`;
+            if(!box || !text || !instruksi) return;
+
+            if (data.status === 'menunggu') {
+                box.className = "status-box status-menunggu";
+                text.innerText = "MENUNGGU...";
+                instruksi.innerText = "Harap tunggu di kelas sampai giliran dipanggil.";
+                if (btnReset) btnReset.style.display = "none";
+                hapusTombolKembali(); 
+
+            } else if (data.status === 'dipanggil') {
+                box.className = "status-box status-dipanggil";
+                text.innerText = "SILAKAN AMBIL!";
+                instruksi.innerText = "🚨 Giliran kelasmu! Segera menuju tempat pembagian MBG.";
+
+                if (btnReset) btnReset.style.display = "none";
+                hapusTombolKembali(); 
+
+                const bel = document.getElementById("suaraBel");
+                if(bel) {
+                    bel.play().catch(e => console.log("Audio diblokir browser, interaksi user diperlukan."));
+                }
+
+                if (!Swal.isVisible()) {
+                    Swal.fire({
+                        title: 'GILIRAN KELAS KAMU!',
+                        text: `Silakan menuju ruang MBG sekarang.`,
+                        icon: 'info',
+                        confirmButtonText: 'Oke, Saya Menuju Kesana',
+                        confirmButtonColor: '#10b981',
+                        allowOutsideClick: false
+                    });
+                }
+
+            } else if (data.status === 'selesai') {
+                box.className = "status-box status-selesai";
         
-            if (btnReset) btnReset.style.display = "block";
-            hapusTombolKembali();
-        } else {
-            text.innerText = "MAKANAN SELESAI";
-            instruksi.innerText = "Silakan nikmati makanan. Jangan lupa kembalikan tempat MBG jika sudah selesai!";
-        
-            buatTombolKembali();
-        if (btnReset) btnReset.style.display = "none";
+                if (data.statusPengembalian === 'dikembalikan') {
+                    text.innerText = "WADAH DIKEMBALIKAN";
+                    instruksi.innerText = `Terima kasih! Wadah MBG telah dikembalikan pada jam ${data.waktuKembali}.`;
+            
+                    if (btnReset) btnReset.style.display = "block";
+                    hapusTombolKembali();
+                } else {
+                    text.innerText = "MAKANAN SELESAI";
+                    instruksi.innerText = "Silakan nikmati makanan. Jangan lupa kembalikan tempat MBG jika sudah selesai!";
+            
+                    buatTombolKembali();
+                    if (btnReset) btnReset.style.display = "none";
+                }
+            }
+        });
     }
-}
-    });
-}
+    
 
 
     function buatTombolKembali() {
@@ -436,6 +465,7 @@
     
         
 </script>
-
+<script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script>
+<audio id="suaraBel" src="audi/pop.mp3" preload="auto"></audio>
 </body>
 </html>
