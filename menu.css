@@ -61,9 +61,30 @@
         }
         
         .role-container { 
-            display: flex; 
-            gap: 10px; 
+            position: relative;
+            display: flex;
+            background: rgba(255, 255, 255, 0.1);
+            border-radius: 10px;
+            padding: 5px; 
+            
             margin-bottom: 20px; 
+        }
+
+        .sliding-bg{
+            position: absolute;
+            top: 5px;
+            bottom: 5px;
+            left: 5px;
+            width: calc(50% - 5px); /* Setengah lebar dikurangi padding */
+            background-color: #2563eb; /* Warna aktif dipindah ke sini */
+            border-radius: 8px;
+            box-shadow: 0 4px 10px rgba(37, 99, 235, 0.4);
+            transition: transform 0.4s cubic-bezier(0.25, 1, 0.5, 1); /* Efek animasi geser */
+            z-index: 0;
+        }
+
+        .role-container.petugas-aktif .sliding-bg{
+            transform: translateX(100%);
         }
         
         .btn-tab { 
@@ -75,18 +96,21 @@
             font-size: 14px;
             cursor: pointer;
             transition: all 0.2s ease;
+
+            position: relative;
+            z-index: 1;
+            background: transparent;
             color: white;
         }
 
         .btn-tab-active { 
-            background-color: #2563eb; 
+            opacity: 1;
             box-shadow: 0 4px 10px rgba(37, 99, 235, 0.4);
         }
 
         .btn-tab-inactive { 
-            background-color: rgba(255, 255, 255, 0.2); 
             color: #cbd5e1;
-            opacity: 0.7;
+            opacity: 0.6;
         }
 
         input,select{ 
