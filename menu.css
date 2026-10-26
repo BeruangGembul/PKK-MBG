@@ -187,4 +187,43 @@
             margin: 8px 0 0 0; 
             text-align: left;
             font-weight: 500;
-        }   
+        }
+
+        .floating-container{
+            position: relative;
+            margin-top: 15px;
+        }
+
+        .floating-container input{
+            padding: 24px 12px 8px 12px;
+            margin-top: 0;
+        }
+
+        .floating-container input::placeholder{
+            color: transparent;
+            transition: color 0.2 ease;
+        }
+
+        .floating-container input:focus::placeholder {
+        color: #cbd5e1;
+        }
+
+        .floating-container .label-login{
+            position: absolute;
+            top: 16px;
+            left: 12px;
+            font-size: 14px;
+            color: #cbd5e1;
+            pointer-events: none;
+            transition: all 0.2s ease-in-out;
+            margin: 0;
+            font-weight: normal;
+            }
+
+        .floating-container input:focus ~ .label-login,
+        .floating-container input:not(:placeholder-shown) ~ .label-login {
+            top: 6px;
+            font-size: 11px;
+            color: #021e26;    
+            font-weight: 600;
+        }
