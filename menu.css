@@ -8,7 +8,8 @@
         body { 
             
             background: linear-gradient(135deg, #1e3c72 0%, #2a5298 50%, #00c6ff 100%);
-            
+            overflow-x: hidden; /* Mencegah muncul scrollbar horizontal saat animasi */
+            transition: transform 0.5s ease-in-out, opacity 0.5s ease-in-out;
             padding: 20px; 
             text-align: center; 
             min-height: 100vh;
@@ -17,6 +18,16 @@
             align-items: center;
         }
 
+body.slide-out-left {
+    transform: translateX(-100%);
+    opacity: 0;
+}
+
+/* Geser ke kanan (untuk KM) */
+body.slide-out-right {
+    transform: translateX(100%);
+    opacity: 0;
+}
         
         .card { 
             background: rgba(255, 255, 255, 0.15);

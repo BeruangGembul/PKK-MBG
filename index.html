@@ -34,9 +34,13 @@
 
     <!-- Form Petugas -->
     <div id="formPetugas" style="display: none;">
-        <div class="form-group-left floating-container">
+        <div class="form-group-left floating-container" style="position: relative;">
             <input type="password" id="passPetugas" placeholder="Masukkan PIN Petugas">
             <label for="passPetugas" class="label-login">Password PIN Petugas:</label>
+
+            <span id="togglePin" onclick="togglePassPetugas()" style="position: absolute; right: 12px; top: 50%; transform: translateY(-50%); cursor: pointer; user-select: none; font-size: 18px;">
+            👁️
+        </span>
             
         </div>
         
@@ -48,11 +52,13 @@
     </div>
 </div>
 
+
 <script>
     let currentRole = 'km';
 
     
     
+
 
 
     function pilihRole(role) {
@@ -83,17 +89,38 @@
         }
     }
 
-    function masukSebagaiKM() {
-        window.location.href = "km.html";
+    function togglePassPetugas() {
+        const passInput = document.getElementById('passPetugas');
+        const toggleIcon = document.getElementById('togglePin');
+
+        if (passInput.type === 'password') {
+            passInput.type = 'text';
+            toggleIcon.textContent = '🙈'; 
+        } else {
+            passInput.type = 'password';
+            toggleIcon.textContent = '👁️'; 
+        }
     }
 
+    function masukSebagaiKM() {
+    // 1. Tambahkan class animasi geser ke body
+    document.body.classList.add('slide-out-right');
+
+    // 2. Tunggu animasi selesai (0.5 detik), lalu pindah halaman
+    setTimeout(function() {
+        window.location.href = "km.html";
+    }, 500);
+}
     function masukSebagaiPetugas() {
         const pin = document.getElementById('passPetugas').value;
         const pesanError = document.getElementById('pesanError');
 
         // PIN Default Petugas adalah 123456
         if (pin === "123456") {
+            document.body.classList.add('slide-out-left');
+            setTimeout(function() {
             window.location.href = "petugas.html";
+        }, 500);
         } else {
             pesanError.style.display = 'block';
         }
