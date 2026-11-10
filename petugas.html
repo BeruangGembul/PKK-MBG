@@ -5,6 +5,46 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Panel Petugas MBG</title>
     <link rel="stylesheet" href="pstyle.css">
+    <link rel="stylesheet" href="murid.css"> <!-- Memuat style untuk tombol list antrean & sidebar -->
+    <style>
+
+    @keyframes fadeInOnly {
+    0% {
+        opacity: 0;
+    }
+    100% {
+        opacity: 1;
+    }
+}
+
+.container {
+    /* Biarkan posisi aslinya mengikuti file CSS Anda (jangan ubah position/transform asli) */
+    animation: fadeInOnly 0.4s ease-out forwards;
+}
+
+        /* Perbaikan CSS agar header dan tombol List Antrean sejajar rapi seperti halaman KM */
+        .title-container {
+            position: relative;
+            display: flex;
+            align-items: center;
+            justify-content: center; /* Judul tetap di tengah */
+            margin-bottom: 20px;
+            margin-top: 10px;
+        }
+
+        .title-container h2 {
+            margin: 0;
+            font-size: 20px;
+            color: #ffffff; /* Menyesuaikan warna teks jika gelap */
+        }
+
+        /* Memaksa tombol List Antrean berada di pojok kanan card, sejajar dengan judul */
+        .title-container .btn-antrean-mini {
+            position: absolute;
+            right: 0;
+            cursor: pointer;
+        }
+    </style>
 </head>
 <body>
 
@@ -14,7 +54,13 @@
         📢 Antrean Berikutnya: <span id="kelasBerikutnya">Memuat...</span>
     </div>
 
-    <h2>Panel Petugas MBG</h2>
+    <!-- HEADER DENGAN POSISI TOMBOL DI SAMPING JUDUL (PERSIS HALAMAN KM) -->
+    <div class="title-container">
+        <h2>Panel Petugas MBG</h2>
+        <span class="btn-antrean-mini" onclick="window.bukaModalAntrean()" title="Lihat Urutan Antrean">
+            📋 List Antrian
+        </span>
+    </div>
     
     <button class="btn-panggil" onclick="panggilBerikutnya()">📲 Panggil Antrean Berikutnya</button>
 
@@ -22,6 +68,30 @@
         <span style="color: #64748b; font-size: 14px; font-weight: 600;">SEDANG DIPANGGIL:</span>
         <div class="kelas-text" id="kelasDipanggil">-</div>
         <button class="btn-selesai" onclick="tandaiSelesai()">✓ Tandai Sudah Diambil</button>
+    </div>
+</div>
+
+<!-- SIDEBAR / PANEL SAMPING ANTREAN (SAMA PERSIS DENGAN HALAMAN KM) -->
+<div id="modalAntrean" class="sidebar-overlay hidden" onclick="window.tutupModalAntrean()">
+    <div class="sidebar-card">
+        <div class="sidebar-header">
+            <h3>Urutan Antrean MBG</h3>
+            <button type="button" class="btn-close" onclick="window.tutupModalAntrean(); event.stopPropagation();">&times;</button>
+        </div>
+        <div class="sidebar-body" onclick="event.stopPropagation()">
+            <table class="antrean-table">
+                <thead>
+                    <tr>
+                        <th>No</th>
+                        <th>Kelas</th>
+                        <th>Status</th>
+                    </tr>
+                </thead>
+                <tbody id="tabelAntreanBody">
+                    <tr><td colspan="3" style="text-align:center;">Memuat data...</td></tr>
+                </tbody>
+            </table>
+        </div>
     </div>
 </div>
 
@@ -43,7 +113,6 @@
     const app = initializeApp(firebaseConfig);
     const db = getDatabase(app);
 
-    // Variabel untuk menyimpan data antrean saat ini
     let daftarAntreanGlobal = [];
     let currentDipanggilKey = null;
 
@@ -51,25 +120,45 @@
         const d = new Date();
         const year = d.getFullYear();
         const month = String(d.getMonth() + 1).padStart(2, '0');
-        const day = String(d.getDate()) .padStart(2,'0');
+        const day = String(d.getDate()).padStart(2,'0');
         return `${year}-${month}-${day}`;
     }
 
     const hariIni = getTanggalHariIni();
+
+    // FUNGSI MEMBUKA & MENUTUP MODAL SIDEBAR
+    window.bukaModalAntrean = function() {
+        const modal = document.getElementById("modalAntrean");
+        if (modal) {
+            renderTabelAntrean();
+            modal.classList.remove("hidden");
+            setTimeout(() => {
+                modal.classList.add("tampil-animasi");
+            }, 10);
+        }
+    };
+
+    window.tutupModalAntrean = function() {
+        const modal = document.getElementById("modalAntrean");
+        if (modal) {
+            modal.classList.remove("tampil-animasi");
+            setTimeout(() => {
+                modal.classList.add("hidden");
+            }, 300); 
+        }
+    };
 
     // 1. PANTAU SELURUH ANTREAN DARI FIREBASE SECARA REAL-TIME
     const antreanRef = ref(db, "antrean/" + hariIni);
     
     onValue(antreanRef, (snapshot) => {
         const data = snapshot.val();
-        console.log("Data dari Firebase:", data);
         const badgeElemen = document.getElementById("kelasBerikutnya");
         const kelasDipanggilElemen = document.getElementById("kelasDipanggil");
 
         if (!badgeElemen) return;
 
         if (data) {
-            // Ubah object firebase menjadi array & urutkan berdasarkan waktu paling awal (FIFO)
             daftarAntreanGlobal = Object.keys(data).map(key => ({
                 key: key,
                 ...data[key]
@@ -77,22 +166,26 @@
 
             // A. Cari antrean pertama yang statusnya masih "menunggu" untuk Badge
             const antreanMenunggu = daftarAntreanGlobal.find(item => item.status === 'menunggu');
-
             if (antreanMenunggu) {
                 badgeElemen.innerText = antreanMenunggu.kelas;
             } else {
                 badgeElemen.innerText = "Belum Ada / Antrean Kosong";
             }
 
-            // B. Cari antrean yang statusnya "dipanggil" untuk ditampilkan di layar petugas
+            // B. Cari antrean yang statusnya "dipanggil"
             const antreanDipanggil = daftarAntreanGlobal.find(item => item.status === 'dipanggil');
-
             if (antreanDipanggil) {
                 kelasDipanggilElemen.innerText = antreanDipanggil.kelas;
-                currentDipanggilKey = antreanDipanggil.key; // simpan key-nya
+                currentDipanggilKey = antreanDipanggil.key;
             } else {
                 kelasDipanggilElemen.innerText = "-";
                 currentDipanggilKey = null;
+            }
+
+            // Jika modal sedang terbuka, perbarui tabel secara real-time
+            const modal = document.getElementById("modalAntrean");
+            if (modal && !modal.classList.contains("hidden")) {
+                renderTabelAntrean();
             }
 
         } else {
@@ -100,12 +193,43 @@
             badgeElemen.innerText = "Belum Ada / Antrean Kosong";
             kelasDipanggilElemen.innerText = "-";
             currentDipanggilKey = null;
+            renderTabelAntrean();
         }
     });
 
+    // FUNGSI RENDER TABEL DI DALAM MODAL SIDEBAR
+    function renderTabelAntrean(){
+        const tbody = document.getElementById("tabelAntreanBody");
+        if (!tbody) return;
+            
+        tbody.innerHTML = "";
+
+        if (daftarAntreanGlobal.length === 0) {
+            tbody.innerHTML = '<tr><td colspan="3" style="text-align:center; color:#64748b;">Belum ada antrean hari ini</td></tr>';
+            return;
+        }
+
+        daftarAntreanGlobal.forEach((item, index) => {
+            const tr = document.createElement("tr");
+            
+            let badgeClass = "badge-menunggu";
+            if (item.status === "selesai") badgeClass = "badge-selesai";
+            if (item.status === "dipanggil") badgeClass = "badge-dipanggil";
+
+            tr.innerHTML = `
+                <td>#${index + 1}</td>
+                <td><strong>${item.kelas}</strong></td>
+                <td>
+                    <span class="badge ${badgeClass}">${item.status || 'menunggu'}</span>
+                    ${item.statusPengembalian === 'dikembalikan' ? `<br><small style="color:#10b981; font-size: 11px;">✅ Wadah Kembali (${item.waktuKembali})</small>` : ''}
+                </td>
+            `;
+            tbody.appendChild(tr);
+        });
+    }
+
     // 2. FUNGSI UNTUK MEMANGGIL ANTREAN BERIKUTNYA
     window.panggilBerikutnya = function() {
-        // Cari antrean terdepan yang statusnya masih 'menunggu'
         const antreanMenunggu = daftarAntreanGlobal.find(item => item.status === 'menunggu');
 
         if (!antreanMenunggu) {
@@ -113,7 +237,6 @@
             return;
         }
 
-        // Ubah status kelas tersebut di Firebase menjadi 'dipanggil'
         const targetRef = ref(db, 'antrean/' + hariIni + '/' + antreanMenunggu.key);
         update(targetRef, {
             status: 'dipanggil'
@@ -131,7 +254,6 @@
             return;
         }
 
-        // Ubah status kelas yang sedang dipanggil di Firebase menjadi 'selesai'
         const targetRef = ref(db, 'antrean/' + hariIni + '/' + currentDipanggilKey);
         update(targetRef, {
             status: 'selesai'
@@ -141,30 +263,6 @@
             alert("Gagal memperbarui status: " + err.message);
         });
     };
-
-    window.kembalikanWadah = function(){
-        const savedKey = localStorage.getItem('myAntreanKey');
-        if (!savedKey) return;
-
-        // jam
-        const sekarang = new Date();
-        const jamFormat = sekarang.toLocaleTimeString('id-ID',{hour: '2-digit', minute:'2-digit'}) + "WIB";
-
-        const spesifikRef = ref(db, 'antrean/' + hariIni + '/' + savedKey);
-        
-        update(spesifikRef, {
-            statusPengembalian: "dikembalikan",
-            waktuKembali: jamFormat
-        }).then(() => {
-            alert("Wadah MBG berhasil dicatat telah dikembalikan pada jam " + jamFormat);
-        }).catch((error) => {
-            alert("Gagal mencatat pengembalian: " + error.message);
-        });
-    }
-
-    
-
-        
 </script>
 
 </body>
